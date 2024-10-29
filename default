@@ -1,19 +1,45 @@
 server {
-    listen 80;  # Utilise le port 80
-    server_name 127.0.0.1;  # Ou ton IP
+    listen 80;  # Écoute sur le port 80
+    server_name localhost;  # Ou l'adresse IP de ton serveur
 
-    root /var/www/html;  # Chemin vers le document root
+    root /var/www/html;  # Chemin vers le répertoire racine
 
-    index index.php index.html index.htm;  # Index
+    index index.php index.html index.htm;  # Fichiers d'index
 
+    # Configuration pour WordPress
     location / {
-        try_files $uri $uri/ /index.php?$query_string;  # Rediriger vers index.php si non trouvé
+        try_files $uri $uri/ /index.php?$query_string;  # Redirige vers index.php si le fichier n'est pas trouvé
     }
 
+    # Configuration pour phpMyAdmin
+    location /phpmyadmin {
+        alias /usr/share/phpmyadmin;  # Chemin vers l'installation de phpMyAdmin
+        index index.php index.html index.htm;
+
+        location ~ ^/phpmyadmin/(.*\.php)$ {
+            include snippets/fastcgi-php.conf;  # Inclut la configuration FastCGI
+            fastcgi_pass unix:/var/run/php/php7.3-fpm.sock;  # Chemin vers le socket PHP-FPM
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            include fastcgi_params;
+        }
+
+        location ~ /phpmyadmin/(.*) {
+            try_files $uri =404;  # Renvoie une erreur 404 si le fichier n'est pas trouvé
+        }
+    }
+
+    # Gérer les fichiers PHP
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php7.3-fpm.sock;  # Assure-toi que ce chemin est correct
+        fastcgi_pass unix:/var/run/php/php7.3-fpm.sock;  # Assurez-vous que ce chemin est correct
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
     }
+
+    # Gérer les erreurs 404
+    error_page 404 /404.html;
+    location = /404.html {
+        internal;
+    }
 }
+
