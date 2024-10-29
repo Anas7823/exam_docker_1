@@ -1,8 +1,11 @@
 # Utiliser Debian Buster comme base
 FROM debian:buster
 
+# Changer le miroir à un autre qui pourrait être accessible
+RUN sed -i 's|http://deb.debian.org/debian|http://ftp.fr.debian.org/debian|g' /etc/apt/sources.list
+
 # Installer les dépendances nécessaires
-RUN apt-get update && apt-get install -y \
+RUN apt-get update --fix-missing && apt-get install -y \
     wget \
     curl \
     gnupg2 \
@@ -16,10 +19,16 @@ RUN apt-get update && apt-get install -y \
     php-xml \
     php-zip \
     php-gd \
-    mysql-server \
-    phpmyadmin \
+    mariadb-server \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
+
+# Télécharger et installer phpMyAdmin manuellement
+RUN wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.tar.gz \
+    && tar -xzf phpMyAdmin-latest-all-languages.tar.gz \
+    && mv phpMyAdmin-*-all-languages /usr/share/phpmyadmin \
+    && rm phpMyAdmin-latest-all-languages.tar.gz \
+    && ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
 
 # Installer WordPress
 RUN wget https://wordpress.org/latest.tar.gz \
@@ -31,16 +40,11 @@ RUN wget https://wordpress.org/latest.tar.gz \
 COPY ./my.cnf /etc/mysql/my.cnf
 COPY ./create_db.sql /docker-entrypoint-initdb.d/
 
-# Configuration de phpMyAdmin
-RUN echo "PMA_HOST=localhost" > /etc/phpmyadmin/config.inc.php \
-    && echo "PMA_USER=wordpress_user" >> /etc/phpmyadmin/config.inc.php \
-    && echo "PMA_PASSWORD=wordpress_password" >> /etc/phpmyadmin/config.inc.php
-
 # Copier le fichier de configuration Nginx
 COPY ./nginx.conf /etc/nginx/sites-available/default
 
-# Configurer supervisord
-COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# Configurer index.html
+COPY index.html /var/www/html/
 
 # Exposer les ports
 EXPOSE 80 443
