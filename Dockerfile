@@ -21,6 +21,7 @@ RUN apt-get update --fix-missing && apt-get install -y \
     php-gd \
     mariadb-server \
     supervisor \
+    vim \
     && rm -rf /var/lib/apt/lists/*
 
 # Télécharger et installer phpMyAdmin manuellement
@@ -40,14 +41,19 @@ RUN wget https://wordpress.org/latest.tar.gz \
 COPY ./my.cnf /etc/mysql/my.cnf
 COPY ./create_db.sql /docker-entrypoint-initdb.d/
 
+# Ajouter cette ligne dans ton Dockerfile
+COPY supervisord.conf /etc/supervisord.conf
+
 # Copier le fichier de configuration Nginx
-COPY ./nginx.conf /etc/nginx/sites-available/default
+COPY ./default /etc/nginx/sites-available/default
 
 # Configurer index.html
-COPY index.html /var/www/html/
+COPY ./index.html /var/www/html/
 
 # Exposer les ports
 EXPOSE 80 443
 
-# Démarrer supervisord
-CMD ["/usr/bin/supervisord"]
+
+
+# Démarrer 
+CMD service nginx start && service mysql start && tail -f /dev/null
